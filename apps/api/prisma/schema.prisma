@@ -1,0 +1,278 @@
+// Schéma de données Behouse — v0.1 (E1 - Fondations techniques)
+// Référence fonctionnelle : Behouse_Cahier_Des_Charges_Fonctionnel.md, section 3 (ERD) et 6.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Connexion "pooled" utilisée au runtime.
+  url       = env("DATABASE_URL")
+  // Connexion directe utilisée par Prisma pour les migrations (recommandé avec Neon).
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum UserRole {
+  SUPER_ADMIN
+  AGENCY_ADMIN
+  AGENT
+  TENANT
+}
+
+enum AuthMethod {
+  EMAIL_PASSWORD
+  PHONE_PASSWORD
+  GOOGLE
+}
+
+enum AgencyStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum PropertyStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum PaymentMethod {
+  MTN_MOBILE_MONEY
+  ORANGE_MONEY
+  CARD
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+}
+
+enum ContactRequestStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+// --- Modèles ---
+
+model User {
+  id                String    @id @default(uuid())
+  email             String?   @unique
+  phone             String?   @unique
+  passwordHash      String?
+  googleId          String?   @unique
+  authMethod        AuthMethod
+  role              UserRole
+  firstName         String
+  lastName          String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  agencyMemberships AgencyMember[]
+  bookings          Booking[]
+  reviews           Review[]
+  messages          Message[]
+
+  @@map("users")
+}
+
+model Agency {
+  id                String       @id @default(uuid())
+  name              String
+  description       String?
+  logoUrl           String?
+  aboutPageContent  String?
+  status            AgencyStatus @default(PENDING)
+  commissionRate    Decimal      @default(0.10) @db.Decimal(4, 3)
+  bankDetails       Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  members           AgencyMember[]
+  properties        Property[]
+  payouts           Payout[]
+
+  @@map("agencies")
+}
+
+model AgencyMember {
+  id        String   @id @default(uuid())
+  userId    String
+  agencyId  String
+  roleLabel String? // ex: "gestionnaire biens", "support réservations"
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  agency    Agency   @relation(fields: [agencyId], references: [id])
+
+  @@unique([userId, agencyId])
+  @@map("agency_members")
+}
+
+model Property {
+  id                      String         @id @default(uuid())
+  agencyId                String
+  title                   String
+  description             String
+  propertyType            String
+  address                 String
+  city                    String
+  latitude                Decimal?       @db.Decimal(9, 6)
+  longitude               Decimal?       @db.Decimal(9, 6)
+  pricePerNight            Decimal        @db.Decimal(10, 2)
+  status                  PropertyStatus @default(DRAFT)
+  photos                  Json           @default("[]")
+  amenities                Json           @default("[]")
+  houseRules               Json?
+  cancellationPolicyOverride Json?
+  checkInTime             String?
+  checkOutTime            String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  agency        Agency          @relation(fields: [agencyId], references: [id])
+  availabilities Availability[]
+  bookings      Booking[]
+  reviews       Review[]
+  contactRequests ContactRequest[]
+
+  @@index([agencyId])
+  @@index([city, status])
+  @@map("properties")
+}
+
+model Availability {
+  id         String   @id @default(uuid())
+  propertyId String
+  date       DateTime @db.Date
+  isBlocked  Boolean  @default(false)
+
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, date])
+  @@map("availabilities")
+}
+
+model Booking {
+  id                       String        @id @default(uuid())
+  propertyId               String
+  tenantId                 String
+  startDate                DateTime      @db.Date
+  endDate                  DateTime      @db.Date
+  totalAmount              Decimal       @db.Decimal(10, 2)
+  commissionAmount         Decimal       @db.Decimal(10, 2)
+  agencyPayoutAmount       Decimal       @db.Decimal(10, 2)
+  status                   BookingStatus @default(PENDING)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  property   Property  @relation(fields: [propertyId], references: [id])
+  tenant     User      @relation(fields: [tenantId], references: [id])
+  payment    Payment?
+  messages   Message[]
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@map("bookings")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  bookingId     String        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  cinetpayTransactionId String? @unique
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+// Reversement des 90% à l'agence — Behouse encaisse la totalité via CinetPay
+// puis déclenche ce reversement séparément (voir documentation technique, section 4).
+model Payout {
+  id          String       @id @default(uuid())
+  agencyId    String
+  bookingIds  Json // liste des booking.id inclus dans ce reversement
+  amount      Decimal      @db.Decimal(10, 2)
+  status      PayoutStatus @default(PENDING)
+  paidAt      DateTime?
+  createdAt   DateTime     @default(now())
+
+  agency      Agency       @relation(fields: [agencyId], references: [id])
+
+  @@index([agencyId])
+  @@map("payouts")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  propertyId String
+  authorId   String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  property   Property @relation(fields: [propertyId], references: [id])
+  author     User     @relation(fields: [authorId], references: [id])
+
+  @@map("reviews")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  bookingId      String?
+  senderId       String
+  content        String
+  createdAt      DateTime @default(now())
+
+  booking        Booking? @relation(fields: [bookingId], references: [id])
+  sender         User     @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+// Demande de contact via la popup "Envoyer une demande" (fiche bien).
+// Peut être soumise par un visiteur non connecté.
+model ContactRequest {
+  id                  String                @id @default(uuid())
+  propertyId          String
+  firstName           String
+  lastName             String
+  email               String
+  phone                String
+  requestedStartDate  DateTime?             @db.Date
+  requestedEndDate    DateTime?             @db.Date
+  specialRequests      String?
+  status               ContactRequestStatus @default(NEW)
+  createdAt            DateTime              @default(now())
+
+  property             Property              @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@map("contact_requests")
+}

@@ -1,0 +1,62 @@
+# Blueprint Render.com — service backend Behouse (NestJS)
+# Référence : https://render.com/docs/blueprint-spec
+#
+# Utilisation : dans le dashboard Render, "New +" -> "Blueprint",
+# pointer sur ce dépôt. Render détecte ce fichier automatiquement.
+# Les valeurs marquées "sync: false" sont à saisir manuellement dans le
+# dashboard Render (jamais commitées dans ce dépôt).
+#
+# Note monorepo : pas de "rootDir" ici, car le projet utilise les npm
+# workspaces (un seul lockfile à la racine). L'installation se fait donc
+# à la racine du dépôt, et les commandes ciblent explicitement le
+# workspace apps/api.
+
+services:
+  - type: web
+    name: behouse-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run prisma:generate --workspace=apps/api && npm run build --workspace=apps/api
+    startCommand: npm run prisma:deploy --workspace=apps/api && node apps/api/dist/main.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_CALLBACK_URL
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-central-1
+      - key: S3_BUCKET_NAME
+        value: behouse_storage
+      - key: CINETPAY_API_KEY
+        sync: false
+      - key: CINETPAY_SITE_ID
+        sync: false
+      - key: CINETPAY_SECRET_KEY
+        sync: false
+      - key: CINETPAY_NOTIFY_URL
+        sync: false
+      - key: DEFAULT_COMMISSION_RATE
+        value: '0.10'

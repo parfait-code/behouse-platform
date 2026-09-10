@@ -1,0 +1,50 @@
+name: CI - API (NestJS)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'package.json'
+      - '.github/workflows/ci-api.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'package.json'
+      - '.github/workflows/ci-api.yml'
+
+jobs:
+  lint-build-test:
+    name: Lint, Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          # Le monorepo utilise les npm workspaces : un seul lockfile à la racine.
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (whole workspace)
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint:api
+
+      - name: Build
+        run: npm run build:api
+
+      - name: Unit tests
+        run: npm run test:api
+
+  # Le déploiement en lui-même est géré nativement par l'intégration
+  # GitHub <-> Render, pilotée par render.yaml (root directory : apps/api).
+  # Ce workflow sert uniquement de garde-fou qualité avant merge.
