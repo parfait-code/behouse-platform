@@ -19,6 +19,14 @@ export default function HomePage(): React.JSX.Element {
       <p className="mt-8 text-sm text-neutral-400">
         Page de recherche à implémenter (epic E4).
       </p>
+      <div className="mt-6 flex gap-4 text-sm">
+        <a href="/auth/login" className="underline">
+          Se connecter
+        </a>
+        <a href="/auth/register" className="underline">
+          S&apos;inscrire
+        </a>
+      </div>
     </main>
   );
 }

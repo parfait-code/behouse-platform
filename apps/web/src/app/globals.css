@@ -1,3 +1,35 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Stylisation de react-phone-number-input pour matcher les champs Behouse
+   (TextField/PasswordField) — la librairie ne permet pas de passer des
+   classes Tailwind directement sur ses éléments internes. */
+.behouse-phone-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid theme('colors.neutral.300');
+  border-radius: theme('borderRadius.md');
+  background-color: white;
+  padding: 0 0.75rem;
+}
+
+.behouse-phone-input:focus-within {
+  border-color: theme('colors.primary.DEFAULT');
+  box-shadow: 0 0 0 1px theme('colors.primary.DEFAULT');
+}
+
+.behouse-phone-input .PhoneInputInput {
+  border: none;
+  outline: none;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
+  color: theme('colors.ink');
+  background: transparent;
+}
+
+.behouse-phone-input .PhoneInputCountry {
+  margin-right: 0.25rem;
+}
+
