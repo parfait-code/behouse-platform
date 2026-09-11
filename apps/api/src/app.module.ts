@@ -3,6 +3,8 @@ import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
+import { UsersModule } from "./users/users.module";
+import { AuthModule } from "./auth/auth.module";
 
 @Module({
   imports: [
@@ -11,9 +13,10 @@ import { PrismaModule } from "./prisma/prisma.module";
       envFilePath: ".env",
     }),
     PrismaModule,
+    UsersModule,
+    AuthModule,
     // Modules fonctionnels à venir (epics du planning de développement) :
-    // AuthModule, AgenciesModule, PropertiesModule, BookingsModule,
-    // PaymentsModule, UsersModule...
+    // AgenciesModule, PropertiesModule, BookingsModule, PaymentsModule...
   ],
   controllers: [AppController],
   providers: [AppService],
