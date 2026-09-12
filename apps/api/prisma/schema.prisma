@@ -10,7 +10,7 @@ datasource db {
   // Connexion "pooled" utilisée au runtime.
   url       = env("DATABASE_URL")
   // Connexion directe utilisée par Prisma pour les migrations (recommandé avec Neon).
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // --- Enums ---
@@ -141,6 +141,10 @@ model Property {
   latitude                Decimal?       @db.Decimal(9, 6)
   longitude               Decimal?       @db.Decimal(9, 6)
   pricePerNight            Decimal        @db.Decimal(10, 2)
+  maxGuests               Int            @default(1)
+  bedrooms                Int            @default(1)
+  bathrooms               Int            @default(1)
+  beds                    Int            @default(1)
   status                  PropertyStatus @default(DRAFT)
   photos                  Json           @default("[]")
   amenities                Json           @default("[]")

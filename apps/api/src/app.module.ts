@@ -7,6 +7,8 @@ import { UsersModule } from "./users/users.module";
 import { AuthModule } from "./auth/auth.module";
 import { AgenciesModule } from "./agencies/agencies.module";
 import { PropertiesModule } from "./properties/properties.module";
+import { PaymentsModule } from "./payments/payments.module";
+import { BookingsModule } from "./bookings/bookings.module";
 
 @Module({
   imports: [
@@ -19,8 +21,8 @@ import { PropertiesModule } from "./properties/properties.module";
     AuthModule,
     AgenciesModule,
     PropertiesModule,
-    // Modules fonctionnels à venir (epics du planning de développement) :
-    // BookingsModule, PaymentsModule...
+    PaymentsModule,
+    BookingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

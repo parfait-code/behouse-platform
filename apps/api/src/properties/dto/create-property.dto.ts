@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsInt,
   IsLatitude,
   IsLongitude,
   IsNumber,
@@ -41,6 +42,26 @@ export class CreatePropertyDto {
   @IsNumber()
   @IsPositive()
   pricePerNight!: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  maxGuests?: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  bedrooms?: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  bathrooms?: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  beds?: number;
 
   // URLs de photos déjà hébergées (Neon Storage) — la génération d'URLs
   // pré-signées d'upload est un endpoint séparé, à construire (TODO).

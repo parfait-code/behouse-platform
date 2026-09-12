@@ -60,5 +60,9 @@ services:
         sync: false
       - key: CINETPAY_NOTIFY_URL
         sync: false
+      - key: CINETPAY_RETURN_URL
+        sync: false
+      - key: DEFAULT_CURRENCY
+        value: XAF
       - key: DEFAULT_COMMISSION_RATE
         value: '0.10'

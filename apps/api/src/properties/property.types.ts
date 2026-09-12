@@ -11,6 +11,10 @@ export interface PropertyView {
   latitude: string | null;
   longitude: string | null;
   pricePerNight: string;
+  maxGuests: number;
+  bedrooms: number;
+  bathrooms: number;
+  beds: number;
   status: PropertyStatus;
   photos: unknown;
   amenities: unknown;
@@ -34,6 +38,10 @@ export function toPropertyView(property: Property): PropertyView {
     latitude: property.latitude?.toString() ?? null,
     longitude: property.longitude?.toString() ?? null,
     pricePerNight: property.pricePerNight.toString(),
+    maxGuests: property.maxGuests,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    beds: property.beds,
     status: property.status,
     photos: property.photos,
     amenities: property.amenities,

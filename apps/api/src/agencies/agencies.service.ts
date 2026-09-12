@@ -69,7 +69,12 @@ export class AgenciesService {
           data: {
             name: dto.agencyName,
             status: AgencyStatus.PENDING,
-            bankDetails: dto.bankDetails ?? undefined,
+            bankDetails: dto.bankDetails
+              ? // BankDetailsDto est une classe (donc sans signature d'index),
+                // alors que Prisma attend un objet JSON structurel. Le DTO est
+                // déjà validé par class-validator à ce stade — cast sûr.
+                (dto.bankDetails as unknown as Prisma.InputJsonValue)
+              : undefined,
           },
         });
 
