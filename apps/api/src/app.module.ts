@@ -5,6 +5,8 @@ import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
 import { AuthModule } from "./auth/auth.module";
+import { AgenciesModule } from "./agencies/agencies.module";
+import { PropertiesModule } from "./properties/properties.module";
 
 @Module({
   imports: [
@@ -15,8 +17,10 @@ import { AuthModule } from "./auth/auth.module";
     PrismaModule,
     UsersModule,
     AuthModule,
+    AgenciesModule,
+    PropertiesModule,
     // Modules fonctionnels à venir (epics du planning de développement) :
-    // AgenciesModule, PropertiesModule, BookingsModule, PaymentsModule...
+    // BookingsModule, PaymentsModule...
   ],
   controllers: [AppController],
   providers: [AppService],

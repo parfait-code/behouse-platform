@@ -10,7 +10,7 @@ datasource db {
   // Connexion "pooled" utilisée au runtime.
   url       = env("DATABASE_URL")
   // Connexion directe utilisée par Prisma pour les migrations (recommandé avec Neon).
-  directUrl = env("DIRECT_DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 // --- Enums ---
