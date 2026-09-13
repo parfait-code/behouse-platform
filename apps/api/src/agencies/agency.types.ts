@@ -20,6 +20,24 @@ export interface AgencyAdminDetail extends AgencySummary {
   updatedAt: Date;
 }
 
+export interface AgencyPublicProfile {
+  id: string;
+  name: string;
+  description: string | null;
+  logoUrl: string | null;
+  aboutPageContent: string | null;
+  properties: Array<{
+    id: string;
+    title: string;
+    city: string;
+    pricePerNight: string;
+    photos: unknown;
+    maxGuests: number;
+    bedrooms: number;
+    bathrooms: number;
+  }>;
+}
+
 export function toAgencySummary(agency: Agency): AgencySummary {
   return {
     id: agency.id,

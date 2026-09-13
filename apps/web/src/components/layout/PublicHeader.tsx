@@ -35,7 +35,7 @@ export function PublicHeader(): React.JSX.Element {
           </>
         ) : (
           <>
-            <a href="/auth/register" className="hover:text-ink">
+            <a href="/agences/register" className="hover:text-ink">
               Rejoindre en tant qu&apos;agence
             </a>
             <a

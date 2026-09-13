@@ -11,6 +11,7 @@ import {
   AgencyStatus,
   AuthMethod,
   Prisma,
+  Property,
   UserRole,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -19,8 +20,10 @@ import { PublicUser } from "../users/user.types";
 import { JwtPayload } from "../auth/interfaces/jwt-payload.interface";
 import { RegisterAgencyDto } from "./dto/register-agency.dto";
 import { RejectAgencyDto } from "./dto/reject-agency.dto";
+import { UpdateAgencyProfileDto } from "./dto/update-agency-profile.dto";
 import {
   AgencyAdminDetail,
+  AgencyPublicProfile,
   AgencySummary,
   toAgencyAdminDetail,
   toAgencySummary,
@@ -129,6 +132,64 @@ export class AgenciesService {
   async findDetailOrThrow(id: string): Promise<AgencyAdminDetail> {
     const agency = await this.findOneOrThrow(id);
     return toAgencyAdminDetail(agency);
+  }
+
+  // --- Page à propos publique (cahier des charges, 6.3) ---
+
+  /** Récupère l'agence de l'utilisateur connecté (dashboard agence). */
+  async findOwnAgency(agencyId: string): Promise<AgencySummary> {
+    const agency = await this.findOneOrThrow(agencyId);
+    return toAgencySummary(agency);
+  }
+
+  /**
+   * Une agence non approuvée (PENDING/SUSPENDED/REJECTED) n'a pas de page
+   * publique — 404 plutôt que d'exposer son statut interne.
+   */
+  async findPublicProfile(id: string): Promise<AgencyPublicProfile> {
+    const agency = await this.findOneOrThrow(id);
+    if (agency.status !== AgencyStatus.APPROVED) {
+      throw new NotFoundException("Agence introuvable.");
+    }
+
+    const properties = await this.prisma.property.findMany({
+      where: { agencyId: id, status: "PUBLISHED" },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      id: agency.id,
+      name: agency.name,
+      description: agency.description,
+      logoUrl: agency.logoUrl,
+      aboutPageContent: agency.aboutPageContent,
+      properties: properties.map((p: Property) => ({
+        id: p.id,
+        title: p.title,
+        city: p.city,
+        pricePerNight: p.pricePerNight.toString(),
+        photos: p.photos,
+        maxGuests: p.maxGuests,
+        bedrooms: p.bedrooms,
+        bathrooms: p.bathrooms,
+      })),
+    };
+  }
+
+  /**
+   * Édition de la page à propos par l'agence elle-même (cahier des
+   * charges, 7.6) — réservé à l'Admin Agence, pas aux Agents (voir
+   * matrice des rôles, section 4).
+   */
+  async updateProfile(
+    agencyId: string,
+    dto: UpdateAgencyProfileDto,
+  ): Promise<AgencySummary> {
+    const updated = await this.prisma.agency.update({
+      where: { id: agencyId },
+      data: { ...dto },
+    });
+    return toAgencySummary(updated);
   }
 
   /** PENDING -> APPROVED (voir diagramme d'états, cahier des charges 5.5). */
