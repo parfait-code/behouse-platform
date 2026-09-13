@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Property, PropertyStatus, Prisma } from "@prisma/client";
+import { AgencyStatus, Property, PropertyStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
 import { UpdatePropertyDto } from "./dto/update-property.dto";
@@ -172,6 +172,11 @@ export class PropertiesService {
     const properties = await this.prisma.property.findMany({
       where: {
         status: PropertyStatus.PUBLISHED,
+        // Une agence non approuvée (PENDING/SUSPENDED/REJECTED) ne doit
+        // jamais apparaître publiquement, même si ses biens sont publiés
+        // (bug corrigé : ce filtre manquait, contournant le circuit de
+        // validation Super Admin).
+        agency: { status: AgencyStatus.APPROVED },
         city: query.city
           ? { equals: query.city, mode: "insensitive" }
           : undefined,
@@ -221,7 +226,11 @@ export class PropertiesService {
       include: { agency: true },
     });
 
-    if (!property || property.status !== PropertyStatus.PUBLISHED) {
+    if (
+      !property ||
+      property.status !== PropertyStatus.PUBLISHED ||
+      property.agency.status !== AgencyStatus.APPROVED
+    ) {
       throw new NotFoundException("Bien introuvable.");
     }
 

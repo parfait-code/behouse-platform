@@ -9,6 +9,7 @@ import { AgenciesModule } from "./agencies/agencies.module";
 import { PropertiesModule } from "./properties/properties.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { BookingsModule } from "./bookings/bookings.module";
+import { UploadsModule } from "./uploads/uploads.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { BookingsModule } from "./bookings/bookings.module";
     PropertiesModule,
     PaymentsModule,
     BookingsModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

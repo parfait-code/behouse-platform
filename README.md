@@ -37,6 +37,7 @@ npm install
    - `DATABASE_URL` : la connexion **pooled** Neon (fournie dans votre dashboard Neon, onglet "Connection Details").
    - `DIRECT_DATABASE_URL` : la connexion **sans pooling** Neon (nécessaire pour les migrations Prisma).
    - `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` : identifiants Neon Storage (compatible S3), depuis l'onglet stockage de votre projet Neon.
+     ⚠️ **Étape manuelle requise** : dans le dashboard Neon (Object Storage → Buckets), configurez le bucket `behouse_storage` en accès **`public_read`** (lecture anonyme, écriture authentifiée). Sans ça, les photos de biens et logos d'agences uploadés via l'app renverront une erreur 403 en lecture — voir `apps/api/src/uploads/uploads.service.ts`.
    - Les identifiants CinetPay (sandbox pour commencer).
    - Un `JWT_SECRET` fort (générer avec `openssl rand -base64 32`).
 

@@ -150,6 +150,17 @@ describe("PropertiesService", () => {
       const result = await service.findPublicDetail("property-1");
       expect(result.agency.name).toBe("Agence Dupont");
     });
+
+    it("renvoie 404 si le bien est publié mais l'agence n'est pas approuvée (PENDING)", async () => {
+      prisma.property.findUnique.mockResolvedValue({
+        ...buildProperty({ status: PropertyStatus.PUBLISHED }),
+        agency: buildAgency({ status: AgencyStatus.PENDING }),
+      });
+
+      await expect(
+        service.findPublicDetail("property-1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe("searchPublic", () => {

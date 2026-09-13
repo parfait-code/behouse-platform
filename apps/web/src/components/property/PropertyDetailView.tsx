@@ -177,7 +177,10 @@ export function PropertyDetailView({
           </div>
 
           <div>
-            <BookingSidebar propertyId={property.id} />
+            <BookingSidebar
+              propertyId={property.id}
+              pricePerNight={property.pricePerNight}
+            />
           </div>
         </div>
       </div>

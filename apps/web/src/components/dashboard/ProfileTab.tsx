@@ -5,6 +5,7 @@ import { updateAgencyProfile } from '../../lib/agencies/api';
 import { AgencySummary } from '../../lib/agencies/types';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { TextField } from '../ui/TextField';
+import { ImageUploader } from '../ui/ImageUploader';
 
 interface ProfileTabProps {
   token: string;
@@ -13,7 +14,7 @@ interface ProfileTabProps {
 
 export function ProfileTab({ token, agency }: ProfileTabProps): React.JSX.Element {
   const [description, setDescription] = useState(agency.description ?? '');
-  const [logoUrl, setLogoUrl] = useState(agency.logoUrl ?? '');
+  const [logo, setLogo] = useState<string[]>(agency.logoUrl ? [agency.logoUrl] : []);
   const [aboutPageContent, setAboutPageContent] = useState('');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function ProfileTab({ token, agency }: ProfileTabProps): React.JSX.Elemen
     try {
       await updateAgencyProfile(token, {
         description: description || undefined,
-        logoUrl: logoUrl || undefined,
+        logoUrl: logo[0] || undefined,
         aboutPageContent: aboutPageContent || undefined,
       });
       setSaved(true);
@@ -64,13 +65,15 @@ export function ProfileTab({ token, agency }: ProfileTabProps): React.JSX.Elemen
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Agence spécialisée dans la location meublée à Yaoundé"
         />
-        <TextField
-          id="agency-logo"
-          label="URL du logo"
-          value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
-          placeholder="https://…"
+
+        <ImageUploader
+          token={token}
+          purpose="AGENCY_LOGO"
+          label="Logo de l'agence"
+          value={logo}
+          onChange={setLogo}
         />
+
         <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
           Présentation complète
           <textarea

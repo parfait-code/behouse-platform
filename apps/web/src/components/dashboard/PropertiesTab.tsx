@@ -10,6 +10,7 @@ import {
 } from '../../lib/properties/agency-api';
 import { TextField } from '../ui/TextField';
 import { PrimaryButton } from '../ui/PrimaryButton';
+import { ImageUploader } from '../ui/ImageUploader';
 
 interface PropertiesTabProps {
   token: string;
@@ -130,7 +131,7 @@ function CreatePropertyForm({
   const [maxGuests, setMaxGuests] = useState('2');
   const [bedrooms, setBedrooms] = useState('1');
   const [bathrooms, setBathrooms] = useState('1');
-  const [photosInput, setPhotosInput] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
   const [amenitiesInput, setAmenitiesInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -150,10 +151,7 @@ function CreatePropertyForm({
         maxGuests: Number(maxGuests),
         bedrooms: Number(bedrooms),
         bathrooms: Number(bathrooms),
-        photos: photosInput
-          .split(',')
-          .map((p) => p.trim())
-          .filter(Boolean),
+        photos,
         amenities: amenitiesInput
           .split(',')
           .map((a) => a.trim())
@@ -243,12 +241,13 @@ function CreatePropertyForm({
           onChange={(e) => setBathrooms(e.target.value)}
         />
       </div>
-      <TextField
-        id="prop-photos"
-        label="Photos (URLs séparées par une virgule)"
-        placeholder="https://.../photo1.jpg, https://.../photo2.jpg"
-        value={photosInput}
-        onChange={(e) => setPhotosInput(e.target.value)}
+      <ImageUploader
+        token={token}
+        purpose="PROPERTY_PHOTO"
+        multiple
+        label="Photos du bien"
+        value={photos}
+        onChange={setPhotos}
       />
       <TextField
         id="prop-amenities"

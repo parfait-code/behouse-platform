@@ -2,30 +2,76 @@
 
 import { useState } from 'react';
 import { ContactRequestModal } from './ContactRequestModal';
+import { createBooking } from '../../lib/bookings/api';
+import { getToken } from '../../lib/auth/token-storage';
 
 interface BookingSidebarProps {
   propertyId: string;
+  pricePerNight: string;
 }
 
-/**
- * "Vérifier la disponibilité" ne mène pas encore à un vrai tunnel de
- * réservation : le module Réservation + Paiement (CinetPay, epic E6)
- * n'est pas construit. On l'annonce honnêtement plutôt que de faire
- * semblant — voir /auth/reset-password pour le même principe appliqué
- * ailleurs dans le projet.
- */
-export function BookingSidebar({ propertyId }: BookingSidebarProps): React.JSX.Element {
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+export function BookingSidebar({
+  propertyId,
+  pricePerNight,
+}: BookingSidebarProps): React.JSX.Element {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(1);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [bookingNotice, setBookingNotice] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const nights = computeNights(checkIn, checkOut);
+  const totalPrice = nights ? nights * Number(pricePerNight) : null;
+
+  async function handleCheckAvailability(): Promise<void> {
+    setError(null);
+
+    const token = getToken();
+    if (!token) {
+      // On perd la sélection de dates en redirigeant — acceptable pour le
+      // MVP, à améliorer plus tard (retour post-connexion vers la fiche
+      // bien avec les dates pré-remplies).
+      window.location.href = '/auth/login';
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await createBooking(token, {
+        propertyId,
+        startDate: checkIn,
+        endDate: checkOut,
+        guests,
+      });
+
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+      } else {
+        setError(
+          "Votre réservation est enregistrée, mais le paiement n'a pas pu être initialisé. Contactez le support Behouse.",
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Impossible de vérifier la disponibilité pour le moment.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="sticky top-6 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
       <h3 className="text-base font-semibold text-ink">Réservez votre séjour</h3>
       <p className="mt-1 text-sm text-neutral-500">
-        Sélectionnez les dates pour voir les prix.
+        {totalPrice
+          ? `${formatPrice(totalPrice)} XAF pour ${nights} nuit${nights && nights > 1 ? 's' : ''}`
+          : 'Sélectionnez les dates pour voir les prix.'}
       </p>
 
       <div className="mt-4 flex flex-col gap-3">
@@ -76,17 +122,16 @@ export function BookingSidebar({ propertyId }: BookingSidebarProps): React.JSX.E
 
         <button
           type="button"
-          disabled={!checkIn || !checkOut}
-          onClick={() => setBookingNotice(true)}
+          disabled={!checkIn || !checkOut || loading}
+          onClick={handleCheckAvailability}
           className="w-full rounded-md bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Vérifier la disponibilité
+          {loading ? 'Redirection vers le paiement…' : 'Vérifier la disponibilité'}
         </button>
 
-        {bookingNotice ? (
-          <p className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-primary">
-            La réservation et le paiement en ligne arrivent très bientôt.
-            En attendant, envoyez une demande à l&apos;agence ci-dessous.
+        {error ? (
+          <p className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+            {error}
           </p>
         ) : null}
 
@@ -111,4 +156,16 @@ export function BookingSidebar({ propertyId }: BookingSidebarProps): React.JSX.E
       ) : null}
     </div>
   );
+}
+
+function computeNights(checkIn: string, checkOut: string): number | null {
+  if (!checkIn || !checkOut) return null;
+  const nights = Math.round(
+    (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / MS_PER_DAY,
+  );
+  return nights > 0 ? nights : null;
+}
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat('fr-FR').format(value);
 }
