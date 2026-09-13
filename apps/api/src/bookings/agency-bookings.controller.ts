@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  UseGuards,
+} from "@nestjs/common";
 import { UserRole } from "@prisma/client";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -26,7 +33,7 @@ export class AgencyBookingsController {
   @Get(":id")
   findOne(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ): Promise<AgencyBookingView> {
     return this.bookingsService.findOneForAgency(agencyId, id);
   }
@@ -34,7 +41,7 @@ export class AgencyBookingsController {
   @Patch(":id/cancel")
   cancel(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ): Promise<AgencyBookingView> {
     return this.bookingsService.cancelForAgency(agencyId, id);
   }

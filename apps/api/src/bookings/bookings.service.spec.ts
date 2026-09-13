@@ -165,6 +165,21 @@ describe("BookingsService", () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
+    it("rejette si l'agence n'est pas approuvée (PENDING)", async () => {
+      prisma.property.findUnique.mockResolvedValue({
+        ...buildProperty(),
+        agency: buildAgency({ status: AgencyStatus.PENDING }),
+      });
+
+      await expect(
+        service.create(buildTenant(), {
+          propertyId: "property-1",
+          startDate: tomorrow.toISOString(),
+          endDate: in4Days.toISOString(),
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
     it("rejette si des dates du séjour sont bloquées", async () => {
       prisma.property.findUnique.mockResolvedValue({
         ...buildProperty(),

@@ -3,8 +3,10 @@ import {
   Controller,
   Get,
   Headers,
+  Logger,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Res,
@@ -25,6 +27,8 @@ import { CinetPayNotificationPayload } from "../payments/interfaces/cinetpay.int
 
 @Controller("bookings")
 export class BookingsController {
+  private readonly logger = new Logger(BookingsController.name);
+
   constructor(
     private readonly bookingsService: BookingsService,
     private readonly cinetPayService: CinetPayService,
@@ -52,7 +56,7 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard)
   async findOne(
     @CurrentUser() user: User,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ): Promise<BookingView> {
     const bookings = await this.bookingsService.findMineForTenant(user.id);
     const match = bookings.find((b) => b.id === id);
@@ -73,30 +77,41 @@ export class BookingsController {
     @Body() payload: CinetPayNotificationPayload,
     @Headers("x-token") xToken: string | undefined,
   ): Promise<{ received: boolean }> {
-    const signatureValid = this.cinetPayService.verifyWebhookSignature(
-      payload,
-      xToken,
-    );
+    try {
+      const signatureValid = this.cinetPayService.verifyWebhookSignature(
+        payload,
+        xToken,
+      );
 
-    if (!signatureValid || !payload.cpm_trans_id) {
-      // On répond quand même 200 pour éviter que CinetPay ne s'acharne à
-      // réessayer une notification frauduleuse ou malformée ; l'événement
-      // est simplement ignoré.
-      return { received: true };
-    }
+      if (!signatureValid || !payload.cpm_trans_id) {
+        // On répond quand même 200 pour éviter que CinetPay ne s'acharne à
+        // réessayer une notification frauduleuse ou malformée ; l'événement
+        // est simplement ignoré.
+        return { received: true };
+      }
 
-    // Source de vérité : on revérifie auprès de CinetPay plutôt que de se
-    // fier uniquement au contenu du webhook (recommandation officielle).
-    const verification = await this.cinetPayService.verifyTransaction(
-      payload.cpm_trans_id,
-    );
-
-    if (verification.data) {
-      await this.bookingsService.confirmFromWebhook(
+      // Source de vérité : on revérifie auprès de CinetPay plutôt que de se
+      // fier uniquement au contenu du webhook (recommandation officielle).
+      const verification = await this.cinetPayService.verifyTransaction(
         payload.cpm_trans_id,
-        verification.data.status,
-        verification.data.amount,
-        verification.data.payment_method,
+      );
+
+      if (verification.data) {
+        await this.bookingsService.confirmFromWebhook(
+          payload.cpm_trans_id,
+          verification.data.status,
+          verification.data.amount,
+          verification.data.payment_method,
+        );
+      }
+    } catch (error) {
+      // Ne JAMAIS laisser une erreur interne remonter en 500 ici : CinetPay
+      // interpréterait ça comme un échec de livraison et réessaierait, ce
+      // qui n'aide pas (l'erreur est probablement déterministe). On logue
+      // pour investigation et on accuse quand même réception.
+      this.logger.error(
+        `Erreur lors du traitement du webhook CinetPay (transaction ${payload.cpm_trans_id ?? "inconnue"})`,
+        error instanceof Error ? error.stack : error,
       );
     }
 

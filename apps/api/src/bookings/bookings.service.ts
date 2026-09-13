@@ -4,7 +4,13 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { BookingStatus, PaymentStatus, Prisma, User } from "@prisma/client";
+import {
+  AgencyStatus,
+  BookingStatus,
+  PaymentStatus,
+  Prisma,
+  User,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CinetPayService } from "../payments/cinetpay.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
@@ -59,7 +65,11 @@ export class BookingsService {
       where: { id: dto.propertyId },
       include: { agency: true },
     });
-    if (!property || property.status !== "PUBLISHED") {
+    if (
+      !property ||
+      property.status !== "PUBLISHED" ||
+      property.agency.status !== AgencyStatus.APPROVED
+    ) {
       throw new NotFoundException("Bien introuvable.");
     }
 

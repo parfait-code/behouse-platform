@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -47,7 +48,7 @@ export class PropertiesController {
   @Get(":id")
   findOne(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ): Promise<PropertyView> {
     return this.propertiesService.findOneForAgency(agencyId, id);
   }
@@ -55,7 +56,7 @@ export class PropertiesController {
   @Patch(":id")
   update(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdatePropertyDto,
   ): Promise<PropertyView> {
     return this.propertiesService.update(agencyId, id, dto);
@@ -64,7 +65,7 @@ export class PropertiesController {
   @Patch(":id/publish")
   publish(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ): Promise<PropertyView> {
     return this.propertiesService.publish(agencyId, id);
   }
@@ -72,7 +73,7 @@ export class PropertiesController {
   @Patch(":id/unpublish")
   unpublish(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ): Promise<PropertyView> {
     return this.propertiesService.unpublish(agencyId, id);
   }
@@ -80,7 +81,7 @@ export class PropertiesController {
   @Patch(":id/availability")
   setAvailability(
     @CurrentAgencyId() agencyId: string,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: SetAvailabilityDto,
   ): Promise<{ updated: number }> {
     return this.propertiesService.setAvailability(agencyId, id, dto);

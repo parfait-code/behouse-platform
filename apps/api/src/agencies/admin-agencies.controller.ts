@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  UseGuards,
+} from "@nestjs/common";
 import { UserRole } from "@prisma/client";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -23,30 +31,30 @@ export class AdminAgenciesController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string): Promise<AgencyAdminDetail> {
+  findOne(@Param("id", ParseUUIDPipe) id: string): Promise<AgencyAdminDetail> {
     return this.agenciesService.findDetailOrThrow(id);
   }
 
   @Patch(":id/approve")
-  approve(@Param("id") id: string): Promise<AgencySummary> {
+  approve(@Param("id", ParseUUIDPipe) id: string): Promise<AgencySummary> {
     return this.agenciesService.approve(id);
   }
 
   @Patch(":id/reject")
   reject(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: RejectAgencyDto,
   ): Promise<AgencySummary> {
     return this.agenciesService.reject(id, dto);
   }
 
   @Patch(":id/suspend")
-  suspend(@Param("id") id: string): Promise<AgencySummary> {
+  suspend(@Param("id", ParseUUIDPipe) id: string): Promise<AgencySummary> {
     return this.agenciesService.suspend(id);
   }
 
   @Patch(":id/reactivate")
-  reactivate(@Param("id") id: string): Promise<AgencySummary> {
+  reactivate(@Param("id", ParseUUIDPipe) id: string): Promise<AgencySummary> {
     return this.agenciesService.reactivate(id);
   }
 }

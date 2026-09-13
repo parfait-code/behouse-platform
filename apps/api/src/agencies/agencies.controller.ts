@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -55,7 +56,9 @@ export class AgenciesController {
 
   /** Page à propos publique (cahier des charges, 6.3). */
   @Get(":id")
-  findPublicProfile(@Param("id") id: string): Promise<AgencyPublicProfile> {
+  findPublicProfile(
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<AgencyPublicProfile> {
     return this.agenciesService.findPublicProfile(id);
   }
 }

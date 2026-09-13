@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from "@nestjs/common";
 import { PropertiesService } from "./properties.service";
 import { SearchPropertiesQueryDto } from "./dto/search-properties-query.dto";
 import { AvailabilityQueryDto } from "./dto/availability-query.dto";
@@ -25,13 +33,15 @@ export class PublicPropertiesController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string): Promise<PublicPropertyDetail> {
+  findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<PublicPropertyDetail> {
     return this.propertiesService.findPublicDetail(id);
   }
 
   @Get(":id/availability")
   getAvailability(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() query: AvailabilityQueryDto,
   ): Promise<{ blockedDates: string[] }> {
     return this.propertiesService.getPublicAvailability(
@@ -43,7 +53,7 @@ export class PublicPropertiesController {
 
   @Post(":id/contact-requests")
   createContactRequest(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: CreateContactRequestDto,
   ): Promise<{ id: string }> {
     return this.propertiesService.createContactRequest(id, dto);
