@@ -9,8 +9,13 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CinetPayService } from "../payments/cinetpay.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import {
+  AdminBookingView,
+  AgencyBookingView,
   BookingView,
+  CommissionSummary,
   CreateBookingResult,
+  toAdminBookingView,
+  toAgencyBookingView,
   toBookingView,
 } from "./booking.types";
 import { ConfigService } from "@nestjs/config";
@@ -132,6 +137,105 @@ export class BookingsService {
       orderBy: { createdAt: "desc" },
     });
     return bookings.map(toBookingView);
+  }
+
+  // --- Dashboard agence (cahier des charges, 7.4) ---
+
+  async findForAgency(agencyId: string): Promise<AgencyBookingView[]> {
+    const bookings = await this.prisma.booking.findMany({
+      where: { property: { agencyId } },
+      include: { property: true, tenant: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return bookings.map(toAgencyBookingView);
+  }
+
+  async findOneForAgency(
+    agencyId: string,
+    bookingId: string,
+  ): Promise<AgencyBookingView> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { property: true, tenant: true },
+    });
+    if (!booking || booking.property.agencyId !== agencyId) {
+      throw new NotFoundException("Réservation introuvable.");
+    }
+    return toAgencyBookingView(booking);
+  }
+
+  /**
+   * Annule une réservation confirmée à venir. Le remboursement effectif
+   * au locataire (API de remboursement CinetPay) n'est PAS déclenché ici
+   * — TODO : CinetPay expose un endpoint de remboursement à intégrer une
+   * fois sa documentation validée, pour l'instant le remboursement est
+   * géré manuellement par l'agence en dehors de la plateforme.
+   */
+  async cancelForAgency(
+    agencyId: string,
+    bookingId: string,
+  ): Promise<AgencyBookingView> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { property: true, tenant: true },
+    });
+    if (!booking || booking.property.agencyId !== agencyId) {
+      throw new NotFoundException("Réservation introuvable.");
+    }
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      throw new BadRequestException(
+        `Impossible d'annuler une réservation au statut "${booking.status}".`,
+      );
+    }
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: BookingStatus.CANCELLED },
+      include: { property: true, tenant: true },
+    });
+
+    // Libère les dates du calendrier pour ce bien.
+    await this.prisma.availability.updateMany({
+      where: {
+        propertyId: booking.propertyId,
+        date: { gte: booking.startDate, lt: booking.endDate },
+      },
+      data: { isBlocked: false },
+    });
+
+    return toAgencyBookingView(updated);
+  }
+
+  // --- Dashboard Behouse (cahier des charges, 8.1/8.5) ---
+
+  async findAllForAdmin(): Promise<AdminBookingView[]> {
+    const bookings = await this.prisma.booking.findMany({
+      include: { property: { include: { agency: true } }, tenant: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return bookings.map(toAdminBookingView);
+  }
+
+  async getCommissionSummary(): Promise<CommissionSummary> {
+    const result = await this.prisma.booking.aggregate({
+      where: {
+        status: {
+          in: [
+            BookingStatus.CONFIRMED,
+            BookingStatus.IN_PROGRESS,
+            BookingStatus.COMPLETED,
+          ],
+        },
+      },
+      _sum: { commissionAmount: true, totalAmount: true },
+      _count: true,
+    });
+
+    return {
+      totalCommission: (result._sum.commissionAmount ?? 0).toString(),
+      totalRevenue: (result._sum.totalAmount ?? 0).toString(),
+      bookingsCount: result._count,
+    };
   }
 
   /**

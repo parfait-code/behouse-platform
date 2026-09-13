@@ -3,6 +3,7 @@ import {
   AuthResult,
   LoginEmailInput,
   LoginPhoneInput,
+  PublicUser,
   RegisterEmailInput,
   RegisterPhoneInput,
 } from './types';
@@ -78,3 +79,13 @@ export function loginWithPhone(input: LoginPhoneInput): Promise<AuthResult> {
  * classique (navigation complète, pas un fetch) — voir GoogleButton.tsx.
  */
 export const googleAuthUrl = `${API_URL}/auth/google`;
+
+export async function getCurrentUser(token: string): Promise<PublicUser> {
+  const response = await fetch(`${API_URL}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw new ApiError('Session expirée.', response.status);
+  }
+  return response.json() as Promise<PublicUser>;
+}

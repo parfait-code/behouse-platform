@@ -80,16 +80,31 @@ describe("BookingsService", () => {
   let service: BookingsService;
   let prisma: {
     property: { findUnique: jest.Mock };
-    availability: { count: jest.Mock };
-    booking: { create: jest.Mock; findMany: jest.Mock };
+    availability: { count: jest.Mock; updateMany: jest.Mock };
+    booking: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      aggregate: jest.Mock;
+    };
   };
   let cinetPayService: jest.Mocked<Pick<CinetPayService, "initializePayment">>;
 
   beforeEach(async () => {
     prisma = {
       property: { findUnique: jest.fn() },
-      availability: { count: jest.fn().mockResolvedValue(0) },
-      booking: { create: jest.fn(), findMany: jest.fn() },
+      availability: {
+        count: jest.fn().mockResolvedValue(0),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      booking: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        aggregate: jest.fn(),
+      },
     };
 
     cinetPayService = {
@@ -222,6 +237,81 @@ describe("BookingsService", () => {
       expect(result.paymentUrl).toBe(
         "https://checkout.cinetpay.com/payment/token",
       );
+    });
+  });
+
+  describe("cancelForAgency", () => {
+    const buildBookingWithRelations = () => ({
+      id: "booking-1",
+      propertyId: "property-1",
+      tenantId: "tenant-1",
+      startDate: new Date(Date.now() + 86400000),
+      endDate: new Date(Date.now() + 4 * 86400000),
+      totalAmount: 75000,
+      commissionAmount: 7500,
+      agencyPayoutAmount: 67500,
+      status: "CONFIRMED",
+      createdAt: new Date(),
+      property: buildProperty(),
+      tenant: buildTenant(),
+    });
+
+    it("renvoie 404 si la réservation appartient à une autre agence", async () => {
+      prisma.booking.findUnique.mockResolvedValue({
+        ...buildBookingWithRelations(),
+        property: buildProperty({ agencyId: "agency-2" }),
+      });
+
+      await expect(
+        service.cancelForAgency("agency-1", "booking-1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it("rejette l'annulation si la réservation n'est pas CONFIRMED", async () => {
+      prisma.booking.findUnique.mockResolvedValue({
+        ...buildBookingWithRelations(),
+        status: "PENDING",
+      });
+
+      await expect(
+        service.cancelForAgency("agency-1", "booking-1"),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it("annule et libère le calendrier si la réservation est CONFIRMED", async () => {
+      const booking = buildBookingWithRelations();
+      prisma.booking.findUnique.mockResolvedValue(booking);
+      prisma.booking.update.mockResolvedValue({
+        ...booking,
+        status: "CANCELLED",
+      });
+
+      const result = await service.cancelForAgency("agency-1", "booking-1");
+
+      expect(result.status).toBe("CANCELLED");
+      expect(prisma.availability.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ propertyId: "property-1" }),
+          data: { isBlocked: false },
+        }),
+      );
+    });
+  });
+
+  describe("getCommissionSummary", () => {
+    it("agrège les commissions des réservations confirmées/terminées", async () => {
+      prisma.booking.aggregate.mockResolvedValue({
+        _sum: { commissionAmount: 15000, totalAmount: 150000 },
+        _count: 6,
+      });
+
+      const summary = await service.getCommissionSummary();
+
+      expect(summary).toEqual({
+        totalCommission: "15000",
+        totalRevenue: "150000",
+        bookingsCount: 6,
+      });
     });
   });
 });
