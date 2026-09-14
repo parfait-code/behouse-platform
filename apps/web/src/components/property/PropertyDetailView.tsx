@@ -5,6 +5,7 @@ import { PublicHeader } from '../layout/PublicHeader';
 import { PhotoGallery } from './PhotoGallery';
 import { AmenitiesModal } from './AmenitiesModal';
 import { BookingSidebar } from './BookingSidebar';
+import { LocationMap } from '../maps/LocationMap';
 import { PublicPropertyDetail } from '../../lib/properties/types';
 
 interface PropertyDetailViewProps {
@@ -168,10 +169,18 @@ export function PropertyDetailView({
             <section className="mt-8">
               <h2 className="text-lg font-semibold text-ink">Emplacement</h2>
               <p className="mt-2 text-sm text-neutral-500">{property.address}, {property.city}</p>
-              {/* TODO : carte interactive (Google Maps) — reportée avec la
-                  carte de la page de recherche (E4), nécessite une clé API. */}
-              <div className="mt-3 flex h-48 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-400">
-                Carte à venir
+              <div className="mt-3">
+                {property.latitude && property.longitude ? (
+                  <LocationMap
+                    latitude={Number(property.latitude)}
+                    longitude={Number(property.longitude)}
+                    label={property.title}
+                  />
+                ) : (
+                  <div className="flex h-48 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-400">
+                    Localisation non renseignée pour ce bien.
+                  </div>
+                )}
               </div>
             </section>
           </div>

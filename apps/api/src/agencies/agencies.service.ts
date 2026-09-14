@@ -172,6 +172,8 @@ export class AgenciesService {
         maxGuests: p.maxGuests,
         bedrooms: p.bedrooms,
         bathrooms: p.bathrooms,
+        latitude: p.latitude?.toString() ?? null,
+        longitude: p.longitude?.toString() ?? null,
       })),
     };
   }

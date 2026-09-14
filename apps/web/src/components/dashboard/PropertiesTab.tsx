@@ -11,6 +11,8 @@ import {
 import { TextField } from '../ui/TextField';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { ImageUploader } from '../ui/ImageUploader';
+import { useGoogleMaps } from '../../lib/maps/useGoogleMaps';
+import { geocodeAddress } from '../../lib/maps/geocode';
 
 interface PropertiesTabProps {
   token: string;
@@ -136,11 +138,20 @@ function CreatePropertyForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Charge le script Google Maps dès l'ouverture du formulaire pour que le
+  // géocodage soit prêt au moment de la soumission.
+  useGoogleMaps();
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setError(null);
     setLoading(true);
     try {
+      // Géocodage automatique de l'adresse — best-effort : si ça échoue,
+      // le bien est quand même créé, simplement sans coordonnées (la
+      // carte de la fiche bien affichera alors "non renseignée").
+      const geocoded = await geocodeAddress(`${address}, ${city}, Cameroun`);
+
       await createProperty(token, {
         title,
         description,
@@ -156,6 +167,8 @@ function CreatePropertyForm({
           .split(',')
           .map((a) => a.trim())
           .filter(Boolean),
+        latitude: geocoded?.latitude,
+        longitude: geocoded?.longitude,
       });
       onCreated();
     } catch (err) {

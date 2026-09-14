@@ -22,6 +22,8 @@ export interface AgencyPublicProfile {
     maxGuests: number;
     bedrooms: number;
     bathrooms: number;
+    latitude: string | null;
+    longitude: string | null;
   }>;
 }
 

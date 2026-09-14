@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PublicHeader } from '../components/layout/PublicHeader';
 import { SearchControls } from '../components/search/SearchControls';
 import { PropertyCard } from '../components/search/PropertyCard';
+import { SearchResultsMap } from '../components/maps/SearchResultsMap';
 import { searchProperties } from '../lib/properties/api';
 import { PublicPropertyListItem, SearchFilters } from '../lib/properties/types';
 
@@ -89,7 +90,7 @@ export function SearchPageContent(): React.JSX.Element {
       <PublicHeader />
       <SearchControls initialFilters={filters} onSearch={handleSearch} />
 
-      <main className="mx-auto max-w-6xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-6 py-6">
         {loading ? (
           <p className="text-sm text-neutral-500">Recherche des biens…</p>
         ) : error ? (
@@ -99,17 +100,25 @@ export function SearchPageContent(): React.JSX.Element {
             Aucun bien ne correspond à votre recherche pour le moment.
           </p>
         ) : (
-          <>
-            <p className="mb-4 text-sm text-neutral-500">
-              {properties.length} propriété{properties.length > 1 ? 's' : ''}{' '}
-              trouvée{properties.length > 1 ? 's' : ''}
-            </p>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {properties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
+            <div>
+              <p className="mb-4 text-sm text-neutral-500">
+                {properties.length} propriété{properties.length > 1 ? 's' : ''}{' '}
+                trouvée{properties.length > 1 ? 's' : ''}
+              </p>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {properties.map((property) => (
+                  <PropertyCard key={property.id} property={property} />
+                ))}
+              </div>
             </div>
-          </>
+
+            <div className="hidden lg:block">
+              <div className="sticky top-6 h-[calc(100vh-140px)] overflow-hidden rounded-lg">
+                <SearchResultsMap properties={properties} />
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>

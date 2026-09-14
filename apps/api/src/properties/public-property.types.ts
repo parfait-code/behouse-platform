@@ -15,6 +15,8 @@ export interface PublicPropertyListItem {
   bedrooms: number;
   bathrooms: number;
   photos: unknown;
+  latitude: string | null;
+  longitude: string | null;
   agency: AgencyBadge;
 }
 
@@ -22,8 +24,6 @@ export interface PublicPropertyDetail extends PublicPropertyListItem {
   description: string;
   propertyType: string;
   address: string;
-  latitude: string | null;
-  longitude: string | null;
   beds: number;
   amenities: unknown;
   houseRules: unknown;
@@ -48,6 +48,8 @@ export function toPublicPropertyListItem(
     bedrooms: property.bedrooms,
     bathrooms: property.bathrooms,
     photos: property.photos,
+    latitude: property.latitude?.toString() ?? null,
+    longitude: property.longitude?.toString() ?? null,
     agency: toAgencyBadge(property.agency),
   };
 }
@@ -60,8 +62,6 @@ export function toPublicPropertyDetail(
     description: property.description,
     propertyType: property.propertyType,
     address: property.address,
-    latitude: property.latitude?.toString() ?? null,
-    longitude: property.longitude?.toString() ?? null,
     beds: property.beds,
     amenities: property.amenities,
     houseRules: property.houseRules,

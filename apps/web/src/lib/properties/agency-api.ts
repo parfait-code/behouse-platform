@@ -30,6 +30,8 @@ export interface CreatePropertyInput {
   beds?: number;
   photos?: string[];
   amenities?: string[];
+  latitude?: number;
+  longitude?: number;
 }
 
 function authHeaders(token: string): HeadersInit {

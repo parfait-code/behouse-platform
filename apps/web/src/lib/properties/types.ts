@@ -17,6 +17,8 @@ export interface PublicPropertyListItem {
   bedrooms: number;
   bathrooms: number;
   photos: string[];
+  latitude: string | null;
+  longitude: string | null;
   agency: AgencyBadge;
 }
 
@@ -24,8 +26,6 @@ export interface PublicPropertyDetail extends PublicPropertyListItem {
   description: string;
   propertyType: string;
   address: string;
-  latitude: string | null;
-  longitude: string | null;
   beds: number;
   amenities: string[];
   houseRules: Record<string, boolean> | null;
