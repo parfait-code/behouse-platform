@@ -5,9 +5,10 @@ import { AdminBookingsController } from "./admin-bookings.controller";
 import { BookingsService } from "./bookings.service";
 import { PaymentsModule } from "../payments/payments.module";
 import { AgenciesModule } from "../agencies/agencies.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
-  imports: [PaymentsModule, AgenciesModule],
+  imports: [PaymentsModule, AgenciesModule, NotificationsModule],
   controllers: [
     BookingsController,
     AgencyBookingsController,

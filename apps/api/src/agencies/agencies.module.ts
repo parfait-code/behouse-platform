@@ -6,10 +6,12 @@ import { AdminAgenciesController } from "./admin-agencies.controller";
 import { AgenciesService } from "./agencies.service";
 import { AgencyMemberGuard } from "./guards/agency-member.guard";
 import { UsersModule } from "../users/users.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [
     UsersModule,
+    NotificationsModule,
     // Nécessaire ici pour signer le token émis directement à l'inscription
     // agence (register() dans AgenciesService), indépendamment d'AuthModule.
     JwtModule.registerAsync({

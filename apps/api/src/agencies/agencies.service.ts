@@ -21,6 +21,7 @@ import { JwtPayload } from "../auth/interfaces/jwt-payload.interface";
 import { RegisterAgencyDto } from "./dto/register-agency.dto";
 import { RejectAgencyDto } from "./dto/reject-agency.dto";
 import { UpdateAgencyProfileDto } from "./dto/update-agency-profile.dto";
+import { NotificationsService } from "../notifications/notifications.service";
 import {
   AgencyAdminDetail,
   AgencyPublicProfile,
@@ -43,6 +44,7 @@ export class AgenciesService {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -203,21 +205,50 @@ export class AgenciesService {
       where: { id },
       data: { status: AgencyStatus.APPROVED },
     });
+
+    const adminEmail = await this.findAdminEmail(id);
+    if (adminEmail) {
+      await this.notificationsService.notifyAgencyApproved(
+        adminEmail,
+        updated.name,
+      );
+    }
+
     return toAgencySummary(updated);
   }
 
   /** PENDING -> REJECTED. */
-  async reject(id: string, _dto: RejectAgencyDto): Promise<AgencySummary> {
+  async reject(id: string, dto: RejectAgencyDto): Promise<AgencySummary> {
     const agency = await this.findOneOrThrow(id);
     this.assertTransition(agency.status, AgencyStatus.PENDING, "rejeter");
 
-    // Le motif (dto.reason) est à transmettre par email à l'agence une fois
-    // le module Notifications construit (V1) — non bloquant pour le MVP.
     const updated = await this.prisma.agency.update({
       where: { id },
       data: { status: AgencyStatus.REJECTED },
     });
+
+    const adminEmail = await this.findAdminEmail(id);
+    if (adminEmail) {
+      await this.notificationsService.notifyAgencyRejected(
+        adminEmail,
+        updated.name,
+        dto.reason,
+      );
+    }
+
     return toAgencySummary(updated);
+  }
+
+  /**
+   * Retrouve l'email du compte Admin Agence (roleLabel "admin", voir
+   * register()) pour lui adresser les notifications de validation.
+   */
+  private async findAdminEmail(agencyId: string): Promise<string | null> {
+    const membership = await this.prisma.agencyMember.findFirst({
+      where: { agencyId, roleLabel: "admin" },
+      include: { user: true },
+    });
+    return membership?.user.email ?? null;
   }
 
   /** APPROVED -> SUSPENDED. */

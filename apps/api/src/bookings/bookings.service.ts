@@ -13,6 +13,7 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CinetPayService } from "../payments/cinetpay.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import {
   AdminBookingView,
@@ -36,6 +37,7 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly cinetPayService: CinetPayService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -213,6 +215,15 @@ export class BookingsService {
       data: { isBlocked: false },
     });
 
+    await this.notificationsService.notifyBookingCancelled({
+      tenantEmail: booking.tenant.email,
+      tenantFirstName: booking.tenant.firstName,
+      propertyTitle: booking.property.title,
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      totalAmount: booking.totalAmount.toString(),
+    });
+
     return toAgencyBookingView(updated);
   }
 
@@ -261,6 +272,7 @@ export class BookingsService {
   ): Promise<void> {
     const booking = await this.prisma.booking.findUnique({
       where: { id: transactionId },
+      include: { tenant: true, property: true },
     });
 
     if (!booking) {
@@ -307,12 +319,7 @@ export class BookingsService {
 
         await tx.payout.create({
           data: {
-            agencyId: (
-              await tx.property.findUniqueOrThrow({
-                where: { id: booking.propertyId },
-                select: { agencyId: true },
-              })
-            ).agencyId,
+            agencyId: booking.property.agencyId,
             bookingIds: [booking.id],
             amount: booking.agencyPayoutAmount,
           },
@@ -331,6 +338,15 @@ export class BookingsService {
             }),
           ),
         );
+      });
+
+      await this.notificationsService.notifyBookingConfirmed({
+        tenantEmail: booking.tenant.email,
+        tenantFirstName: booking.tenant.firstName,
+        propertyTitle: booking.property.title,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        totalAmount: booking.totalAmount.toString(),
       });
     } else {
       // REFUSED, CANCELLED, ou tout autre statut non prévu.

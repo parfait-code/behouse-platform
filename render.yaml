@@ -66,3 +66,7 @@ services:
         value: XAF
       - key: DEFAULT_COMMISSION_RATE
         value: '0.10'
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: 'Behouse <onboarding@resend.dev>'
