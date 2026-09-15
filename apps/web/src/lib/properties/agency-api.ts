@@ -73,6 +73,20 @@ export async function createProperty(
   return response.json() as Promise<AgencyPropertyView>;
 }
 
+export async function updateProperty(
+  token: string,
+  id: string,
+  input: Partial<CreatePropertyInput>,
+): Promise<AgencyPropertyView> {
+  const response = await fetch(`${API_URL}/agency/properties/${id}`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error('Impossible de mettre à jour ce bien.');
+  return response.json() as Promise<AgencyPropertyView>;
+}
+
 export async function publishProperty(
   token: string,
   id: string,

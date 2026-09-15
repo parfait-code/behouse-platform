@@ -41,10 +41,14 @@ export function ImageUploader({
   function handleFileSelect(event: ChangeEvent<HTMLInputElement>): void {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    event.target.value = ''; // permet de re-sélectionner le même fichier
 
+    // ⚠️ Extraire le tableau AVANT de réinitialiser event.target.value :
+    // FileList est une référence live liée à l'input — la vider clearerait
+    // aussi les fichiers déjà "capturés" ici si on le fait avant (bug
+    // corrigé : le fichier sélectionné disparaissait silencieusement).
     setError(null);
     const selectedFiles = multiple ? Array.from(files) : [files[0] as File];
+    event.target.value = ''; // permet de re-sélectionner le même fichier
 
     const newPending: PendingImage[] = selectedFiles.map((file) => ({
       id: crypto.randomUUID(),

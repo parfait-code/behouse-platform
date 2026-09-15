@@ -7,6 +7,7 @@ import {
   listMyProperties,
   publishProperty,
   unpublishProperty,
+  updateProperty,
 } from '../../lib/properties/agency-api';
 import { TextField } from '../ui/TextField';
 import { PrimaryButton } from '../ui/PrimaryButton';
@@ -147,12 +148,10 @@ function CreatePropertyForm({
     setError(null);
     setLoading(true);
     try {
-      // Géocodage automatique de l'adresse — best-effort : si ça échoue,
-      // le bien est quand même créé, simplement sans coordonnées (la
-      // carte de la fiche bien affichera alors "non renseignée").
-      const geocoded = await geocodeAddress(`${address}, ${city}, Cameroun`);
-
-      await createProperty(token, {
+      // Le bien est créé IMMÉDIATEMENT, sans attendre le géocodage —
+      // celui-ci ne doit jamais pouvoir bloquer la création (bug corrigé :
+      // la requête ne partait jamais si le Geocoder ne répondait pas).
+      const created = await createProperty(token, {
         title,
         description,
         propertyType,
@@ -167,10 +166,23 @@ function CreatePropertyForm({
           .split(',')
           .map((a) => a.trim())
           .filter(Boolean),
-        latitude: geocoded?.latitude,
-        longitude: geocoded?.longitude,
       });
       onCreated();
+
+      // Géocodage en arrière-plan, best-effort : ne bloque plus rien, et
+      // n'empêche pas la création si l'adresse n'est pas géolocalisable.
+      geocodeAddress(`${address}, ${city}, Cameroun`)
+        .then((geocoded) => {
+          if (geocoded) {
+            void updateProperty(token, created.id, {
+              latitude: geocoded.latitude,
+              longitude: geocoded.longitude,
+            });
+          }
+        })
+        .catch(() => {
+          // Silencieux : le bien reste publiable sans coordonnées.
+        });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de créer ce bien.');
     } finally {
