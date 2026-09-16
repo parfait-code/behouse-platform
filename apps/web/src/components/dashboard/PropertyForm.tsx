@@ -10,7 +10,7 @@ import {
 import { uploadFiles } from '../../lib/uploads/api';
 import { geocodeAddress } from '../../lib/maps/geocode';
 import { useGoogleMaps } from '../../lib/maps/useGoogleMaps';
-import { AMENITIES_CATALOG, HOUSE_RULES_CATALOG } from '../../lib/properties/constants';
+import { AMENITIES_CATALOG, HOUSE_RULES_CATALOG, PROPERTY_TYPES } from '../../lib/properties/constants';
 import { TextField } from '../ui/TextField';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { ImageUploader } from '../ui/ImageUploader';
@@ -159,7 +159,21 @@ export function PropertyForm({
       </label>
 
       <div className="grid grid-cols-2 gap-3">
-        <TextField id="prop-type" label="Type de bien" value={propertyType} onChange={(e) => setPropertyType(e.target.value)} required />
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
+          Type de bien
+          <select
+            value={propertyType}
+            onChange={(e) => setPropertyType(e.target.value)}
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            required
+          >
+            {PROPERTY_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </label>
         <TextField id="prop-city" label="Ville" value={city} onChange={(e) => setCity(e.target.value)} required />
       </div>
 

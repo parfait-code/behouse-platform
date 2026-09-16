@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { DashboardHeader } from '../../../components/dashboard/DashboardHeader';
 import { PropertiesTab } from '../../../components/dashboard/PropertiesTab';
 import { BookingsTab } from '../../../components/dashboard/BookingsTab';
+import { ContactRequestsTab } from '../../../components/dashboard/ContactRequestsTab';
 import { ProfileTab } from '../../../components/dashboard/ProfileTab';
 import { getCurrentUser } from '../../../lib/auth/api';
 import { getToken } from '../../../lib/auth/token-storage';
@@ -11,7 +12,7 @@ import { PublicUser } from '../../../lib/auth/types';
 import { getMyAgency } from '../../../lib/agencies/api';
 import { AgencySummary } from '../../../lib/agencies/types';
 
-type Tab = 'properties' | 'bookings' | 'profile';
+type Tab = 'properties' | 'bookings' | 'contactRequests' | 'profile';
 
 export default function AgencyDashboardPage(): React.JSX.Element {
   const [token, setToken] = useState<string | null>(null);
@@ -83,6 +84,9 @@ export default function AgencyDashboardPage(): React.JSX.Element {
           <TabButton active={tab === 'bookings'} onClick={() => setTab('bookings')}>
             Réservations
           </TabButton>
+          <TabButton active={tab === 'contactRequests'} onClick={() => setTab('contactRequests')}>
+            Demandes
+          </TabButton>
           {user.role === 'AGENCY_ADMIN' ? (
             <TabButton active={tab === 'profile'} onClick={() => setTab('profile')}>
               Page à propos
@@ -93,6 +97,7 @@ export default function AgencyDashboardPage(): React.JSX.Element {
         <div className="mt-6">
           {tab === 'properties' ? <PropertiesTab token={token} /> : null}
           {tab === 'bookings' ? <BookingsTab token={token} /> : null}
+          {tab === 'contactRequests' ? <ContactRequestsTab token={token} /> : null}
           {tab === 'profile' && user.role === 'AGENCY_ADMIN' ? (
             <ProfileTab token={token} agency={agency} />
           ) : null}

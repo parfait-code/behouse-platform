@@ -10,6 +10,11 @@ import { UpdatePropertyDto } from "./dto/update-property.dto";
 import { SetAvailabilityDto } from "./dto/set-availability.dto";
 import { SearchPropertiesQueryDto } from "./dto/search-properties-query.dto";
 import { CreateContactRequestDto } from "./dto/create-contact-request.dto";
+import { UpdateContactRequestStatusDto } from "./dto/update-contact-request-status.dto";
+import {
+  ContactRequestView,
+  toContactRequestView,
+} from "./contact-request.types";
 import { PropertyView, toPropertyView } from "./property.types";
 import {
   PublicPropertyDetail,
@@ -297,6 +302,40 @@ export class PropertiesService {
     });
 
     return { id: contactRequest.id };
+  }
+
+  // --- Dashboard agence — demandes de contact (cahier des charges, 7.4/7.7) ---
+
+  async findContactRequestsForAgency(
+    agencyId: string,
+  ): Promise<ContactRequestView[]> {
+    const contactRequests = await this.prisma.contactRequest.findMany({
+      where: { property: { agencyId } },
+      include: { property: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return contactRequests.map(toContactRequestView);
+  }
+
+  async updateContactRequestStatus(
+    agencyId: string,
+    contactRequestId: string,
+    dto: UpdateContactRequestStatusDto,
+  ): Promise<ContactRequestView> {
+    const contactRequest = await this.prisma.contactRequest.findUnique({
+      where: { id: contactRequestId },
+      include: { property: true },
+    });
+    if (!contactRequest || contactRequest.property.agencyId !== agencyId) {
+      throw new NotFoundException("Demande introuvable.");
+    }
+
+    const updated = await this.prisma.contactRequest.update({
+      where: { id: contactRequestId },
+      data: { status: dto.status },
+      include: { property: true },
+    });
+    return toContactRequestView(updated);
   }
 
   /**

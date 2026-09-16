@@ -19,6 +19,7 @@ export function SearchControls({
   const [checkIn, setCheckIn] = useState(initialFilters.checkIn ?? '');
   const [checkOut, setCheckOut] = useState(initialFilters.checkOut ?? '');
   const [guests, setGuests] = useState(initialFilters.guests ?? 1);
+  const todayISO = new Date().toISOString().split('T')[0] as string;
 
   const [bedrooms, setBedrooms] = useState<number | undefined>(
     initialFilters.bedrooms,
@@ -95,12 +96,14 @@ export function SearchControls({
         <input
           type="date"
           value={checkIn}
+          min={todayISO}
           onChange={(e) => setCheckIn(e.target.value)}
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-600 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <input
           type="date"
           value={checkOut}
+          min={checkIn || todayISO}
           onChange={(e) => setCheckOut(e.target.value)}
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-600 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />

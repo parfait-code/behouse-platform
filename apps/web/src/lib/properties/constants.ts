@@ -18,7 +18,45 @@ export const AMENITIES_CATALOG = [
   'Smart TV',
   'Cable TV',
   'Fer à repasser',
+  'Piscine',
+  'Jardin',
+  'Balcon',
+  'Terrasse',
+  'Groupe électrogène',
+  'Eau chaude',
+  'Réfrigérateur',
+  'Four',
+  'Micro-ondes',
+  'Lave-linge',
+  'Sèche-linge',
+  'Espace de travail',
+  'Sécurité 24h/24',
+  'Caméras de surveillance',
+  'Interphone',
+  'Salle de sport',
+  'Vue sur mer',
+  'Animaux acceptés',
+  'Accès handicapé',
 ] as const;
+
+/**
+ * Types de logement (formulaire de création/édition, cahier des charges
+ * 7.3) — sélection unique dans une liste plutôt qu'un champ libre, pour
+ * garder des valeurs cohérentes exploitables plus tard en filtre.
+ */
+export const PROPERTY_TYPES = [
+  'Appartement',
+  'Studio',
+  'Villa',
+  'Maison',
+  'Chambre',
+  'Duplex',
+  'Penthouse',
+  'Loft',
+  'Résidence meublée',
+  'Bungalow',
+] as const;
+
 
 /**
  * Règles de la maison (cahier des charges, 6.2.7). Les libellés servent

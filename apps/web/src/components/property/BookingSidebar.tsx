@@ -30,6 +30,10 @@ export function BookingSidebar({
 
   const nights = computeNights(checkIn, checkOut);
   const totalPrice = nights ? nights * Number(pricePerNight) : null;
+  // Empêche la sélection de dates passées (cahier des charges : la
+  // vérification de disponibilité ne doit porter que sur aujourd'hui et
+  // les jours suivants).
+  const todayISO = new Date().toISOString().split('T')[0] as string;
 
   // Vérification automatique dès que la date d'arrivée est renseignée —
   // si aucune date de départ n'est encore choisie, on vérifie une seule
@@ -114,6 +118,7 @@ export function BookingSidebar({
             <input
               type="date"
               value={checkIn}
+              min={todayISO}
               onChange={(e) => setCheckIn(e.target.value)}
               className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
             />
@@ -124,6 +129,7 @@ export function BookingSidebar({
             <input
               type="date"
               value={checkOut}
+              min={checkIn || todayISO}
               onChange={(e) => setCheckOut(e.target.value)}
               className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
             />
