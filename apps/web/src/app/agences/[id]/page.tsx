@@ -21,7 +21,7 @@ export default async function AgencyPage({
     <div className="min-h-screen bg-cream">
       <PublicHeader />
 
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="flex items-center gap-4">
           {agency.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

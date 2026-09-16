@@ -15,6 +15,11 @@ export interface AgencyPropertyView {
   status: 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED';
   photos: string[];
   amenities: string[];
+  houseRules: Record<string, boolean> | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  latitude: string | null;
+  longitude: string | null;
 }
 
 export interface CreatePropertyInput {
@@ -30,6 +35,9 @@ export interface CreatePropertyInput {
   beds?: number;
   photos?: string[];
   amenities?: string[];
+  houseRules?: Record<string, boolean>;
+  checkInTime?: string;
+  checkOutTime?: string;
   latitude?: number;
   longitude?: number;
 }

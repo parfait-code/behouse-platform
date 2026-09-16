@@ -1,19 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AgencyPropertyView,
-  createProperty,
   listMyProperties,
   publishProperty,
   unpublishProperty,
-  updateProperty,
 } from '../../lib/properties/agency-api';
-import { TextField } from '../ui/TextField';
-import { PrimaryButton } from '../ui/PrimaryButton';
-import { ImageUploader } from '../ui/ImageUploader';
-import { useGoogleMaps } from '../../lib/maps/useGoogleMaps';
-import { geocodeAddress } from '../../lib/maps/geocode';
+import { PropertyForm } from './PropertyForm';
 
 interface PropertiesTabProps {
   token: string;
@@ -25,10 +19,12 @@ const STATUS_LABELS: Record<AgencyPropertyView['status'], string> = {
   UNPUBLISHED: 'Dépublié',
 };
 
+type FormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; property: AgencyPropertyView };
+
 export function PropertiesTab({ token }: PropertiesTabProps): React.JSX.Element {
   const [properties, setProperties] = useState<AgencyPropertyView[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [formState, setFormState] = useState<FormState>({ mode: 'closed' });
   const [actionError, setActionError] = useState<string | null>(null);
 
   function refresh(): void {
@@ -58,24 +54,39 @@ export function PropertiesTab({ token }: PropertiesTabProps): React.JSX.Element 
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-ink">Mes biens</h2>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() =>
+            setFormState((s) => (s.mode === 'create' ? { mode: 'closed' } : { mode: 'create' }))
+          }
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
         >
-          {showForm ? 'Annuler' : '+ Ajouter un bien'}
+          {formState.mode === 'create' ? 'Annuler' : '+ Ajouter un bien'}
         </button>
       </div>
 
-      {showForm ? (
-        <CreatePropertyForm
+      {formState.mode === 'create' ? (
+        <PropertyForm
           token={token}
-          onCreated={() => {
-            setShowForm(false);
+          onSaved={() => {
+            setFormState({ mode: 'closed' });
             refresh();
           }}
+          onCancel={() => setFormState({ mode: 'closed' })}
+        />
+      ) : null}
+
+      {formState.mode === 'edit' ? (
+        <PropertyForm
+          token={token}
+          existingProperty={formState.property}
+          onSaved={() => {
+            setFormState({ mode: 'closed' });
+            refresh();
+          }}
+          onCancel={() => setFormState({ mode: 'closed' })}
         />
       ) : null}
 
@@ -94,7 +105,7 @@ export function PropertiesTab({ token }: PropertiesTabProps): React.JSX.Element 
           {properties.map((property) => (
             <li
               key={property.id}
-              className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4"
             >
               <div>
                 <p className="text-sm font-medium text-ink">{property.title}</p>
@@ -103,190 +114,26 @@ export function PropertiesTab({ token }: PropertiesTabProps): React.JSX.Element 
                   {STATUS_LABELS[property.status]}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleTogglePublish(property)}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary"
-              >
-                {property.status === 'PUBLISHED' ? 'Dépublier' : 'Publier'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormState({ mode: 'edit', property })}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary"
+                >
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePublish(property)}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary"
+                >
+                  {property.status === 'PUBLISHED' ? 'Dépublier' : 'Publier'}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
     </div>
-  );
-}
-
-function CreatePropertyForm({
-  token,
-  onCreated,
-}: {
-  token: string;
-  onCreated: () => void;
-}): React.JSX.Element {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [propertyType, setPropertyType] = useState('Appartement');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [pricePerNight, setPricePerNight] = useState('');
-  const [maxGuests, setMaxGuests] = useState('2');
-  const [bedrooms, setBedrooms] = useState('1');
-  const [bathrooms, setBathrooms] = useState('1');
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [amenitiesInput, setAmenitiesInput] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Charge le script Google Maps dès l'ouverture du formulaire pour que le
-  // géocodage soit prêt au moment de la soumission.
-  useGoogleMaps();
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      // Le bien est créé IMMÉDIATEMENT, sans attendre le géocodage —
-      // celui-ci ne doit jamais pouvoir bloquer la création (bug corrigé :
-      // la requête ne partait jamais si le Geocoder ne répondait pas).
-      const created = await createProperty(token, {
-        title,
-        description,
-        propertyType,
-        address,
-        city,
-        pricePerNight: Number(pricePerNight),
-        maxGuests: Number(maxGuests),
-        bedrooms: Number(bedrooms),
-        bathrooms: Number(bathrooms),
-        photos,
-        amenities: amenitiesInput
-          .split(',')
-          .map((a) => a.trim())
-          .filter(Boolean),
-      });
-      onCreated();
-
-      // Géocodage en arrière-plan, best-effort : ne bloque plus rien, et
-      // n'empêche pas la création si l'adresse n'est pas géolocalisable.
-      geocodeAddress(`${address}, ${city}, Cameroun`)
-        .then((geocoded) => {
-          if (geocoded) {
-            void updateProperty(token, created.id, {
-              latitude: geocoded.latitude,
-              longitude: geocoded.longitude,
-            });
-          }
-        })
-        .catch(() => {
-          // Silencieux : le bien reste publiable sans coordonnées.
-        });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de créer ce bien.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="mt-4 flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5"
-    >
-      <TextField
-        id="prop-title"
-        label="Titre"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-      />
-      <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-        Description
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          className="resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          required
-        />
-      </label>
-      <div className="grid grid-cols-2 gap-3">
-        <TextField
-          id="prop-type"
-          label="Type de bien"
-          value={propertyType}
-          onChange={(e) => setPropertyType(e.target.value)}
-          required
-        />
-        <TextField
-          id="prop-city"
-          label="Ville"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          required
-        />
-      </div>
-      <TextField
-        id="prop-address"
-        label="Adresse"
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-        required
-      />
-      <div className="grid grid-cols-4 gap-3">
-        <TextField
-          id="prop-price"
-          label="Prix / nuit (XAF)"
-          type="number"
-          value={pricePerNight}
-          onChange={(e) => setPricePerNight(e.target.value)}
-          required
-        />
-        <TextField
-          id="prop-guests"
-          label="Invités max"
-          type="number"
-          value={maxGuests}
-          onChange={(e) => setMaxGuests(e.target.value)}
-        />
-        <TextField
-          id="prop-bedrooms"
-          label="Chambres"
-          type="number"
-          value={bedrooms}
-          onChange={(e) => setBedrooms(e.target.value)}
-        />
-        <TextField
-          id="prop-bathrooms"
-          label="Salles de bain"
-          type="number"
-          value={bathrooms}
-          onChange={(e) => setBathrooms(e.target.value)}
-        />
-      </div>
-      <ImageUploader
-        token={token}
-        purpose="PROPERTY_PHOTO"
-        multiple
-        label="Photos du bien"
-        value={photos}
-        onChange={setPhotos}
-      />
-      <TextField
-        id="prop-amenities"
-        label="Équipements (séparés par une virgule)"
-        placeholder="Wifi, Parking, Climatisation"
-        value={amenitiesInput}
-        onChange={(e) => setAmenitiesInput(e.target.value)}
-      />
-
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-      <PrimaryButton type="submit" loading={loading}>
-        Créer le bien
-      </PrimaryButton>
-    </form>
   );
 }

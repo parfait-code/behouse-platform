@@ -61,7 +61,10 @@ export default function AgencyDashboardPage(): React.JSX.Element {
 
   return (
     <div className="min-h-screen bg-cream">
-      <DashboardHeader agencyAdminName={`${user.firstName} ${user.lastName}`} />
+      <DashboardHeader
+        agencyName={agency.name}
+        adminName={`${user.firstName} ${user.lastName}`}
+      />
 
       {agency.status !== 'APPROVED' ? (
         <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-800">

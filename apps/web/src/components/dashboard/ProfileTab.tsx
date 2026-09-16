@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { updateAgencyProfile } from '../../lib/agencies/api';
 import { AgencySummary } from '../../lib/agencies/types';
+import { uploadFiles } from '../../lib/uploads/api';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { TextField } from '../ui/TextField';
 import { ImageUploader } from '../ui/ImageUploader';
@@ -14,8 +15,11 @@ interface ProfileTabProps {
 
 export function ProfileTab({ token, agency }: ProfileTabProps): React.JSX.Element {
   const [description, setDescription] = useState(agency.description ?? '');
-  const [logo, setLogo] = useState<string[]>(agency.logoUrl ? [agency.logoUrl] : []);
-  const [aboutPageContent, setAboutPageContent] = useState('');
+  const [existingLogo, setExistingLogo] = useState<string[]>(
+    agency.logoUrl ? [agency.logoUrl] : [],
+  );
+  const [newLogoFile, setNewLogoFile] = useState<File[]>([]);
+  const [aboutPageContent, setAboutPageContent] = useState(agency.aboutPageContent ?? '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,9 +30,15 @@ export function ProfileTab({ token, agency }: ProfileTabProps): React.JSX.Elemen
     setSaved(false);
     setLoading(true);
     try {
+      // Upload différé au clic sur "Enregistrer" (voir ImageUploader).
+      const uploadedLogo =
+        newLogoFile.length > 0
+          ? (await uploadFiles(token, newLogoFile, 'AGENCY_LOGO'))[0]
+          : undefined;
+
       await updateAgencyProfile(token, {
         description: description || undefined,
-        logoUrl: logo[0] || undefined,
+        logoUrl: uploadedLogo ?? existingLogo[0] ?? undefined,
         aboutPageContent: aboutPageContent || undefined,
       });
       setSaved(true);
@@ -67,11 +77,11 @@ export function ProfileTab({ token, agency }: ProfileTabProps): React.JSX.Elemen
         />
 
         <ImageUploader
-          token={token}
-          purpose="AGENCY_LOGO"
           label="Logo de l'agence"
-          value={logo}
-          onChange={setLogo}
+          existingUrls={existingLogo}
+          onExistingUrlsChange={setExistingLogo}
+          files={newLogoFile}
+          onFilesChange={setNewLogoFile}
         />
 
         <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">

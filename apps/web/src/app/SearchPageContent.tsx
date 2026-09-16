@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PublicHeader } from '../components/layout/PublicHeader';
 import { SearchControls } from '../components/search/SearchControls';
 import { PropertyCard } from '../components/search/PropertyCard';
+import { PropertyGridSkeleton } from '../components/search/PropertyCardSkeleton';
 import { SearchResultsMap } from '../components/maps/SearchResultsMap';
 import { searchProperties } from '../lib/properties/api';
 import { PublicPropertyListItem, SearchFilters } from '../lib/properties/types';
@@ -90,9 +91,9 @@ export function SearchPageContent(): React.JSX.Element {
       <PublicHeader />
       <SearchControls initialFilters={filters} onSearch={handleSearch} />
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {loading ? (
-          <p className="text-sm text-neutral-500">Recherche des biens…</p>
+          <PropertyGridSkeleton />
         ) : error ? (
           <p className="text-sm text-red-600">{error}</p>
         ) : properties.length === 0 ? (

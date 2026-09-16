@@ -10,6 +10,7 @@ export interface AgencySummary {
   name: string;
   description: string | null;
   logoUrl: string | null;
+  aboutPageContent: string | null;
   status: AgencyStatus;
   commissionRate: string;
   createdAt: Date;
@@ -46,6 +47,7 @@ export function toAgencySummary(agency: Agency): AgencySummary {
     name: agency.name,
     description: agency.description,
     logoUrl: agency.logoUrl,
+    aboutPageContent: agency.aboutPageContent,
     status: agency.status,
     commissionRate: agency.commissionRate.toString(),
     createdAt: agency.createdAt,

@@ -32,6 +32,7 @@ export interface AgencySummary {
   name: string;
   description: string | null;
   logoUrl: string | null;
+  aboutPageContent: string | null;
   status: 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED';
   commissionRate: string;
   createdAt: string;

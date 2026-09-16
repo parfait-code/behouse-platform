@@ -1,94 +1,68 @@
 'use client';
 
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
-import { uploadFile, UploadPurpose } from '../../lib/uploads/api';
 
 interface ImageUploaderProps {
-  token: string;
-  purpose: UploadPurpose;
-  value: string[];
-  onChange: (urls: string[]) => void;
+  existingUrls: string[];
+  onExistingUrlsChange: (urls: string[]) => void;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
   multiple?: boolean;
   label: string;
 }
 
-interface PendingImage {
-  id: string;
-  previewUrl: string; // URL locale (blob:), le temps que l'upload se termine
-  file: File;
-  status: 'uploading' | 'error';
-}
-
 /**
- * Affiche un aperçu LOCAL (URL.createObjectURL) dès la sélection du
- * fichier, avant même que l'upload ne parte — l'utilisateur voit
- * immédiatement l'image choisie plutôt que d'attendre l'aller-retour
- * réseau. La miniature définitive (URL Neon Storage) prend le relai une
- * fois l'upload terminé.
+ * Composant de SÉLECTION uniquement — aucun appel réseau ici. Les
+ * fichiers choisis restent de simples `File` en mémoire (avec aperçu
+ * local via URL.createObjectURL) jusqu'à ce que le formulaire parent les
+ * envoie explicitement au clic sur son bouton de soumission (voir
+ * PropertyForm / ProfileTab) : ça permet à l'utilisateur de changer
+ * d'avis sur sa sélection sans avoir déjà consommé de bande passante ni
+ * pollué le stockage de fichiers orphelins.
  */
 export function ImageUploader({
-  token,
-  purpose,
-  value,
-  onChange,
+  existingUrls,
+  onExistingUrlsChange,
+  files,
+  onFilesChange,
   multiple = false,
   label,
 }: ImageUploaderProps): React.JSX.Element {
-  const [pending, setPending] = useState<PendingImage[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const previews = useMemo(
+    () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [files],
+  );
+
+  // Libère les URLs objet quand elles ne sont plus affichées (changement
+  // de sélection ou démontage du composant).
+  useEffect(() => {
+    return () => {
+      previews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [previews]);
 
   function handleFileSelect(event: ChangeEvent<HTMLInputElement>): void {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+    const selected = event.target.files;
+    if (!selected || selected.length === 0) return;
 
-    // ⚠️ Extraire le tableau AVANT de réinitialiser event.target.value :
-    // FileList est une référence live liée à l'input — la vider clearerait
-    // aussi les fichiers déjà "capturés" ici si on le fait avant (bug
-    // corrigé : le fichier sélectionné disparaissait silencieusement).
-    setError(null);
-    const selectedFiles = multiple ? Array.from(files) : [files[0] as File];
-    event.target.value = ''; // permet de re-sélectionner le même fichier
+    // Extraire AVANT de réinitialiser l'input (FileList est une
+    // référence live — la vider avant lecture effacerait la sélection).
+    const newFiles = Array.from(selected);
+    event.target.value = '';
 
-    const newPending: PendingImage[] = selectedFiles.map((file) => ({
-      id: crypto.randomUUID(),
-      previewUrl: URL.createObjectURL(file),
-      file,
-      status: 'uploading',
-    }));
-
-    setPending((prev) => (multiple ? [...prev, ...newPending] : newPending));
-    newPending.forEach(startUpload);
+    onFilesChange(multiple ? [...files, ...newFiles] : newFiles.slice(0, 1));
   }
 
-  function startUpload(item: PendingImage): void {
-    uploadFile(token, item.file, purpose)
-      .then((remoteUrl) => {
-        URL.revokeObjectURL(item.previewUrl);
-        setPending((prev) => prev.filter((p) => p.id !== item.id));
-        onChange(multiple ? [...value, remoteUrl] : [remoteUrl]);
-      })
-      .catch(() => {
-        setError(`Échec de l'envoi de "${item.file.name}".`);
-        setPending((prev) =>
-          prev.map((p) => (p.id === item.id ? { ...p, status: 'error' } : p)),
-        );
-      });
+  function removeExisting(url: string): void {
+    onExistingUrlsChange(existingUrls.filter((u) => u !== url));
   }
 
-  function removeImage(url: string): void {
-    onChange(value.filter((u) => u !== url));
+  function removeStaged(file: File): void {
+    onFilesChange(files.filter((f) => f !== file));
   }
 
-  function dismissPending(id: string): void {
-    setPending((prev) => {
-      const item = prev.find((p) => p.id === id);
-      if (item) URL.revokeObjectURL(item.previewUrl);
-      return prev.filter((p) => p.id !== id);
-    });
-  }
-
-  const hasImages = value.length > 0 || pending.length > 0;
+  const hasImages = existingUrls.length > 0 || previews.length > 0;
 
   return (
     <div className="flex flex-col gap-2">
@@ -96,52 +70,16 @@ export function ImageUploader({
 
       {hasImages ? (
         <div className="flex flex-wrap gap-3">
-          {value.map((url) => (
-            <div key={url} className="relative h-20 w-20">
-              {/* eslint-disable-next-line @next/next/no-img-element -- domaine de stockage dynamique */}
-              <img
-                src={url}
-                alt=""
-                className="h-full w-full rounded-md border border-neutral-200 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(url)}
-                aria-label="Retirer cette image"
-                className="absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-neutral-500 shadow hover:text-red-600"
-              >
-                <X size={14} />
-              </button>
-            </div>
+          {existingUrls.map((url) => (
+            <Thumbnail key={url} src={url} onRemove={() => removeExisting(url)} />
           ))}
-
-          {pending.map((item) => (
-            <div key={item.id} className="relative h-20 w-20">
-              {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob:) */}
-              <img
-                src={item.previewUrl}
-                alt=""
-                className={`h-full w-full rounded-md border object-cover ${
-                  item.status === 'error'
-                    ? 'border-red-300 opacity-60'
-                    : 'border-neutral-200 opacity-70'
-                }`}
-              />
-              {item.status === 'uploading' ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-primary" />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => dismissPending(item.id)}
-                  aria-label="Retirer cette image"
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-red-600 shadow"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
+          {previews.map(({ file, url }) => (
+            <Thumbnail
+              key={url}
+              src={url}
+              pending
+              onRemove={() => removeStaged(file)}
+            />
           ))}
         </div>
       ) : null}
@@ -157,7 +95,49 @@ export function ImageUploader({
         />
       </label>
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {previews.length > 0 ? (
+        <p className="text-xs text-neutral-400">
+          {previews.length} image{previews.length > 1 ? 's' : ''} sera
+          {previews.length > 1 ? 'ont' : ''} envoyée
+          {previews.length > 1 ? 's' : ''} à l&apos;enregistrement.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function Thumbnail({
+  src,
+  onRemove,
+  pending = false,
+}: {
+  src: string;
+  onRemove: () => void;
+  pending?: boolean;
+}): React.JSX.Element {
+  return (
+    <div className="relative h-20 w-20">
+      {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local ou domaine de stockage dynamique */}
+      <img
+        src={src}
+        alt=""
+        className={`h-full w-full rounded-md border object-cover ${
+          pending ? 'border-primary/40' : 'border-neutral-200'
+        }`}
+      />
+      {pending ? (
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-primary/90 px-1 text-[10px] font-medium text-white">
+          nouveau
+        </span>
+      ) : null}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Retirer cette image"
+        className="absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-neutral-500 shadow hover:text-red-600"
+      >
+        <X size={14} />
+      </button>
     </div>
   );
 }

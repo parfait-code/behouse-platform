@@ -49,3 +49,17 @@ export async function uploadFile(
 
   return publicUrl;
 }
+
+/**
+ * Upload plusieurs fichiers en parallèle — utilisé à la soumission d'un
+ * formulaire (voir PropertyForm) plutôt qu'à la sélection : les fichiers
+ * ne partent vers Neon Storage qu'au clic sur le bouton final, pour que
+ * l'utilisateur puisse encore changer d'avis sur sa sélection avant.
+ */
+export async function uploadFiles(
+  token: string,
+  files: File[],
+  purpose: UploadPurpose,
+): Promise<string[]> {
+  return Promise.all(files.map((file) => uploadFile(token, file, purpose)));
+}

@@ -83,7 +83,7 @@ export function SearchControls({
       {/* Barre principale : ville, dates, invités */}
       <form
         onSubmit={handleSubmit}
-        className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-4"
+        className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6"
       >
         <input
           type="text"
@@ -134,7 +134,7 @@ export function SearchControls({
       </form>
 
       {/* Filtres rapides : équipements, chambres, salles de bain, budget */}
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-6 pb-4 text-sm">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-4 text-sm sm:px-6">
         {FILTERABLE_AMENITIES.map((amenity) => (
           <Chip
             key={amenity}
